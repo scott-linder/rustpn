@@ -48,11 +48,25 @@ fn main() {
             }
             Ok(())
         })));
+    vm.methods.insert(String::from_str("fn"),
+        Rc::new(Method::Builtin(box |vm| {
+            let block = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
+            let name = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
+            match (name, block) {
+                (StackItem::String(s), StackItem::Block(b)) =>
+                    { vm.methods.insert(s, Rc::new(Method::Block(b))); },
+                _ => return Err(vm::Error::TypeError),
+            }
+            Ok(())
+        })));
     for program in os::args().iter().skip(1) {
         print!("program: {{{}}} => ", program);
-        match vm.run_block(&parse(program.as_slice()).unwrap()) {
-            Ok(()) => println!("stack: {:?}", vm.stack),
-            Err(e) => println!("error: {}", e.description()),
+        match parse(program.as_slice()) {
+            Ok(ref p) => match vm.run_block(p) {
+                Ok(()) => println!("stack: {:?}", vm.stack),
+                Err(e) => println!("runtime error: {}", e.description()),
+            },
+            Err(e) => println!("parser error: {}", e.description()),
         }
     }
 }
