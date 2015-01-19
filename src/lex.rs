@@ -3,10 +3,10 @@
 use std::result::Result::{Ok, Err};
 use std::str::Chars;
 use std::{error, result};
-use token::{Token, Literal};
+use token::Token;
 
 /// Result of a lexer operation.
-type Result = result::Result<Token, Error>;
+pub type Result = result::Result<Token, Error>;
 
 /// Possible errors due to a lexer operation.
 #[derive(PartialEq, Eq, Clone, Show)]
@@ -65,7 +65,9 @@ impl<'a> Iterator for ReplaceOneChars<'a> {
     }
 }
 
-/// The lexer.
+/// The lexer is a tokenizer implemented as an iterator over a string.
+/// Iteration  proceeds until the source is successfully tokenized,
+/// or an error is encountered.
 pub struct Lexer<'a> {
     chars: ReplaceOneChars<'a>,
 }
@@ -78,6 +80,12 @@ impl<'a> Lexer<'a> {
         Lexer {
             chars: ReplaceOneChars::new(src.chars()),
         }
+    }
+
+    /// Consume any remaining chars in underlying source and return error.
+    fn error(&mut self, err: Error) -> Result {
+        for _ in self.chars { }
+        Err(err)
     }
 
     fn whitespace(&mut self) -> Result {
@@ -100,11 +108,11 @@ impl<'a> Lexer<'a> {
                     s.push(c);
                 } else if c.is_whitespace() {
                     self.chars.replace(c);
-                    return Ok(Token::Literal(Literal::Integer(s)));
+                    return Ok(Token::Integer(s));
                 } else {
-                    return Err(Error::MalformedInteger);
+                    return self.error(Error::MalformedInteger);
                 },
-                None => return Ok(Token::Literal(Literal::Integer(s))),
+                None => return Ok(Token::Integer(s)),
             }
         }
     }
@@ -115,7 +123,7 @@ impl<'a> Lexer<'a> {
                 Some(c) => if c == ')' {
                     return Ok(Token::Comment);
                 },
-                None => return Err(Error::UnclosedComment),
+                None => return self.error(Error::UnclosedComment),
             }
         }
     }
@@ -125,11 +133,11 @@ impl<'a> Lexer<'a> {
         loop {
             match self.chars.next() {
                 Some(c) => if c == '"' {
-                    return Ok(Token::Literal(Literal::String(s)));
+                    return Ok(Token::String(s));
                 } else {
                     s.push(c);
                 },
-                None => return Err(Error::UnclosedString),
+                None => return self.error(Error::UnclosedString),
             }
         }
     }
@@ -147,14 +155,18 @@ impl<'a> Lexer<'a> {
             }
         }
     }
+}
 
-    pub fn next_token(&mut self) -> Result {
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result;
+
+    fn next(&mut self) -> Option<Result> {
         loop {
             let c = match self.chars.next() {
                 Some(c) => c,
-                None => return Ok(Token::Eof),
+                None => return None,
             };
-            return if c.is_whitespace() {
+            return Some(if c.is_whitespace() {
                 self.whitespace()
             } else if c.is_digit(DECIMAL) {
                 self.chars.replace(c);
@@ -170,7 +182,7 @@ impl<'a> Lexer<'a> {
             } else {
                 self.chars.replace(c);
                 self.call()
-            }
+            })
         }
     }
 }
@@ -178,49 +190,48 @@ impl<'a> Lexer<'a> {
 #[cfg(test)]
 mod tests {
     use super::{Lexer, Error};
-    use token::{Token, Literal};
+    use token::Token;
 
     #[test]
-    fn test_empty_string_is_eof() {
-        assert_eq!(Lexer::new("").next_token(), Ok(Token::Eof));
+    fn test_empty_string_is_none() {
+        assert_eq!(Lexer::new("").next(), None);
     }
 
     #[test]
     fn test_whitespace() {
-        assert_eq!(Lexer::new(" ").next_token(), Ok(Token::Whitespace));
-        let mut l = Lexer::new("  ");
-        assert_eq!(l.next_token(), Ok(Token::Whitespace));
-        assert!(l.next_token() != Ok(Token::Whitespace),
-            "expected multiple whitespace to be consumed as one token");
+        assert_eq!(Lexer::new(" ").collect::<Vec<_>>(),
+            vec![Ok(Token::Whitespace)]);
+        assert_eq!(Lexer::new("  \t\t\n\n").collect::<Vec<_>>(),
+            vec![Ok(Token::Whitespace)]);
     }
 
     #[test]
     fn test_integer() {
-        assert_eq!(Lexer::new("0").next_token(),
-            Ok(Token::Literal(Literal::Integer("0".to_string()))));
-        assert_eq!(Lexer::new("1.0").next_token(),
-            Err(Error::MalformedInteger));
+        assert_eq!(Lexer::new("0").collect::<Vec<_>>(),
+            vec![Ok(Token::Integer("0".to_string()))]);
+        assert_eq!(Lexer::new("1.0").collect::<Vec<_>>(),
+            vec![Err(Error::MalformedInteger)]);
     }
 
     #[test]
     fn test_comment() {
-        assert_eq!(Lexer::new("(this is a comment)").next_token(),
-            Ok(Token::Comment));
-        assert_eq!(Lexer::new("(this is an unclosed comment").next_token(),
-            Err(Error::UnclosedComment));
+        assert_eq!(Lexer::new("(this is a comment)").collect::<Vec<_>>(),
+            vec![Ok(Token::Comment)]);
+        assert_eq!(Lexer::new("(this is an unclosed comment")
+                   .collect::<Vec<_>>(),
+            vec![Err(Error::UnclosedComment)]);
     }
     #[test]
     fn test_string() {
-        assert_eq!(Lexer::new("\"this is a string\"").next_token(),
-            Ok(Token::Literal(Literal::String("this is a string"
-                                              .to_string()))));
-        assert_eq!(Lexer::new("\"this is an unclosed string").next_token(),
-            Err(Error::UnclosedString));
+        assert_eq!(Lexer::new("\"this is a string\"").collect::<Vec<_>>(),
+            vec![Ok(Token::String("this is a string".to_string()))]);
+        assert_eq!(Lexer::new("\"this is an unclosed string").collect::<Vec<_>>(),
+            vec![Err(Error::UnclosedString)]);
     }
 
     #[test]
     fn test_call() {
-        assert_eq!(Lexer::new("this-is-a-call").next_token(),
-            Ok(Token::Call("this-is-a-call".to_string())));
+        assert_eq!(Lexer::new("this-is-a-call").collect::<Vec<_>>(),
+            vec![Ok(Token::Call("this-is-a-call".to_string()))]);
     }
 }
