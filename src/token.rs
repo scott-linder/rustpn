@@ -4,6 +4,7 @@
 #[derive(PartialEq, Eq, Clone, Show)]
 pub enum Token {
     Literal(Literal),
+    Call(String),
     OpenBrace,
     CloseBrace,
     Whitespace,

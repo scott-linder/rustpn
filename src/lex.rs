@@ -124,12 +124,26 @@ impl<'a> Lexer<'a> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
-                Some(c) => if c == ']' {
+                Some(c) => if c == '"' {
                     return Ok(Token::Literal(Literal::String(s)));
                 } else {
                     s.push(c);
                 },
                 None => return Err(Error::UnclosedString),
+            }
+        }
+    }
+
+    fn call(&mut self) -> Result {
+        let mut s = String::new();
+        loop {
+            match self.chars.next() {
+                Some(c) => if c.is_whitespace() {
+                    return Ok(Token::Call(s));
+                } else {
+                    s.push(c);
+                },
+                None => return Ok(Token::Call(s)),
             }
         }
     }
@@ -147,14 +161,15 @@ impl<'a> Lexer<'a> {
                 self.integer()
             } else if c == '(' {
                 self.comment()
-            } else if c == '[' {
+            } else if c == '"' {
                 self.string()
             } else if c == '{' {
                 Ok(Token::OpenBrace)
             } else if c == '}' {
                 Ok(Token::CloseBrace)
             } else {
-                Err(Error::UnknownToken)
+                self.chars.replace(c);
+                self.call()
             }
         }
     }
@@ -196,10 +211,16 @@ mod tests {
     }
     #[test]
     fn test_string() {
-        assert_eq!(Lexer::new("[this is a string]").next_token(),
+        assert_eq!(Lexer::new("\"this is a string\"").next_token(),
             Ok(Token::Literal(Literal::String("this is a string"
                                               .to_string()))));
-        assert_eq!(Lexer::new("[this is an unclosed string").next_token(),
+        assert_eq!(Lexer::new("\"this is an unclosed string").next_token(),
             Err(Error::UnclosedString));
+    }
+
+    #[test]
+    fn test_call() {
+        assert_eq!(Lexer::new("this-is-a-call").next_token(),
+            Ok(Token::Call("this-is-a-call".to_string())));
     }
 }
