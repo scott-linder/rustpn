@@ -4,5 +4,6 @@
 
 mod lex;
 mod token;
-mod item;
-mod parse;
+pub mod item;
+pub mod parse;
+pub mod vm;
