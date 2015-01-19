@@ -1,12 +1,21 @@
 //! Language items and abstract-syntax tree.
 
 /// The equivalent of a routine/function.
-pub type Block = Vec<Item>;
+pub type Block = Vec<BlockItem>;
 
-/// Any valid value on the stack or in a block.
+/// Language items only valid in a block.
 #[derive(PartialEq, Eq, Clone, Show)]
-pub enum Item {
+pub enum BlockItem {
     Call(String),
+    Literal(StackItem),
+}
+
+/// The global stack.
+pub type Stack = Vec<StackItem>;
+
+/// Language items only valid on the stack.
+#[derive(PartialEq, Eq, Clone, Show)]
+pub enum StackItem {
     Integer(i64),
     String(String),
     Block(Block),

@@ -2,7 +2,7 @@
 
 use std::result::Result::{Ok, Err};
 use std::{error, result};
-use item::{Block, Item};
+use item::{Block, BlockItem, StackItem};
 use token::Token;
 use lex;
 
@@ -53,13 +53,18 @@ fn parse_block(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result {
             Some(t) => try!(t),
         };
         match token {
-            Token::Integer(s) => block.push(Item::Integer(s.parse()
-                    .expect("integer should have been rejected by lexer"))),
-            Token::String(s) => block.push(Item::String(s)),
-            Token::Call(s) => block.push(Item::Call(s)),
-            Token::OpenBrace => 
-                block.push(Item::Block(try!(parse_block(lexer,
-                                                        BlockLevel::Nested)))),
+            Token::Integer(s) => {
+                let i = s.parse()
+                    .expect("lexer should have rejected integer");
+                block.push(BlockItem::Literal(StackItem::Integer(i)));
+            },
+            Token::String(s) =>
+                block.push(BlockItem::Literal(StackItem::String(s))),
+            Token::Call(s) => block.push(BlockItem::Call(s)),
+            Token::OpenBrace => {
+                let nested_block = try!(parse_block(lexer, BlockLevel::Nested));
+                block.push(BlockItem::Literal(StackItem::Block(nested_block)));
+            },
             Token::CloseBrace => break,
             Token::Whitespace | Token::Comment => (),
         }
@@ -76,14 +81,14 @@ pub fn parse(src: &str) -> Result {
 #[cfg(test)]
 mod tests {
     use super::{Error, parse};
-    use item::Item;
+    use item::{BlockItem, StackItem};
 
     #[test]
     fn test_all_simple() {
         assert_eq!(parse(r#"(comment) {} "string" 1 call"#),
-            Ok(vec![Item::Block(vec![]),
-                    Item::String("string".to_string()),
-                    Item::Integer(1),
-                    Item::Call("call".to_string())]));
+            Ok(vec![BlockItem::Literal(StackItem::Block(vec![])),
+                    BlockItem::Literal(StackItem::String("string".to_string())),
+                    BlockItem::Literal(StackItem::Integer(1)),
+                    BlockItem::Call("call".to_string())]));
     }
 }
