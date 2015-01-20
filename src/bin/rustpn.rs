@@ -1,6 +1,6 @@
 extern crate rustpn;
 
-use rustpn::parse::parse;
+use rustpn::parse;
 use rustpn::vm::{self, Vm, Method};
 use rustpn::item::{Stack, StackItem};
 use std::rc::Rc;
@@ -60,13 +60,17 @@ fn main() {
             Ok(())
         })));
     for program in os::args().iter().skip(1) {
-        print!("program: {{{}}} => ", program);
-        match parse(program.as_slice()) {
+        print!("program: {{ {} }} => ", program);
+        match parse::parse(program.as_slice()) {
             Ok(ref p) => match vm.run_block(p) {
                 Ok(()) => println!("stack: {:?}", vm.stack),
                 Err(e) => println!("runtime error: {}", e.description()),
             },
-            Err(e) => println!("parser error: {}", e.description()),
+            Err(e) => match e {
+                parse::Error::LexError(e) =>
+                    println!("lexer error: {}", e.description()),
+                _ => println!("parser error: {}", e.description()),
+            }
         }
     }
 }
