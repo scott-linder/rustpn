@@ -6,11 +6,13 @@ use std::{error, result};
 use token::Token;
 
 /// Result of a lexer operation.
-pub type Result = result::Result<Token, Error>;
+pub type Result<T> = result::Result<T, Error>;
 
 /// Possible errors due to a lexer operation.
 #[derive(PartialEq, Eq, Clone, Show)]
 pub enum Error {
+    UnknownEscape,
+    IncompleteEscape,
     UnknownToken,
     UnclosedComment,
     UnclosedString,
@@ -21,6 +23,8 @@ pub enum Error {
 impl error::Error for Error {
     fn description(&self) -> &str {
         match *self {
+            Error::UnknownEscape => "Unknown character escape",
+            Error::IncompleteEscape => "Incomplete character escape",
             Error::UnknownToken => "Unknown token",
             Error::UnclosedComment => "Unclosed comment",
             Error::UnclosedString => "Unclosed string",
@@ -82,13 +86,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Consume any remaining chars in underlying source and return error.
-    fn error(&mut self, err: Error) -> Result {
+    /// Consume any remaining chars in underlying source.
+    fn consume(&mut self) {
         for _ in self.chars { }
-        Err(err)
     }
 
-    fn whitespace(&mut self) -> Result {
+    fn whitespace(&mut self) -> Result<Token> {
         loop {
             match self.chars.next() {
                 Some(c) => if !c.is_whitespace() {
@@ -100,7 +103,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn integer(&mut self) -> Result {
+    fn integer(&mut self) -> Result<Token> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
@@ -110,39 +113,51 @@ impl<'a> Lexer<'a> {
                     self.chars.replace(c);
                     return Ok(Token::Integer(s));
                 } else {
-                    return self.error(Error::MalformedInteger);
+                    return Err(Error::MalformedInteger);
                 },
                 None => return Ok(Token::Integer(s)),
             }
         }
     }
 
-    fn comment(&mut self) -> Result {
+    fn comment(&mut self) -> Result<Token> {
         loop {
             match self.chars.next() {
                 Some(c) => if c == ')' {
                     return Ok(Token::Comment);
                 },
-                None => return self.error(Error::UnclosedComment),
+                None => return Err(Error::UnclosedComment),
             }
         }
     }
 
-    fn string(&mut self) -> Result {
+    fn escape(&mut self) -> Result<char> {
+        match self.chars.next() {
+            Some(c) => match c {
+                '"' => return Ok('"'),
+                _ => return Err(Error::UnknownEscape),
+            },
+            None => return Err(Error::IncompleteEscape),
+        }
+    }
+
+    fn string(&mut self) -> Result<Token> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
-                Some(c) => if c == '"' {
+                Some(c) => if c == '\\' {
+                    s.push(try!(self.escape()));
+                } else if c == '"' {
                     return Ok(Token::String(s));
                 } else {
                     s.push(c);
                 },
-                None => return self.error(Error::UnclosedString),
+                None => return Err(Error::UnclosedString),
             }
         }
     }
 
-    fn call(&mut self) -> Result {
+    fn call(&mut self) -> Result<Token> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
@@ -158,15 +173,15 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result;
+    type Item = Result<Token>;
 
-    fn next(&mut self) -> Option<Result> {
+    fn next(&mut self) -> Option<Result<Token>> {
         loop {
             let c = match self.chars.next() {
                 Some(c) => c,
                 None => return None,
             };
-            return Some(if c.is_whitespace() {
+            let result = if c.is_whitespace() {
                 self.whitespace()
             } else if c.is_digit(DECIMAL) {
                 self.chars.replace(c);
@@ -182,7 +197,12 @@ impl<'a> Iterator for Lexer<'a> {
             } else {
                 self.chars.replace(c);
                 self.call()
-            })
+            };
+            // If we have errored, the rest of the source is invalid.
+            if result.is_err() {
+                self.consume();
+            }
+            return Some(result);
         }
     }
 }
