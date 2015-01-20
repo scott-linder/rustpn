@@ -59,6 +59,23 @@ fn main() {
             }
             Ok(())
         })));
+    vm.methods.insert(String::from_str("false"),
+        Rc::new(Method::Builtin(box |vm| {
+            vm.stack.push(StackItem::Boolean(false));
+            Ok(())
+        })));
+    vm.methods.insert(String::from_str("true"),
+        Rc::new(Method::Builtin(box |vm| {
+            vm.stack.push(StackItem::Boolean(true));
+            Ok(())
+        })));
+    vm.methods.insert(String::from_str("=="),
+        Rc::new(Method::Builtin(box |vm| {
+            let a = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
+            let b = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
+            vm.stack.push(StackItem::Boolean(a == b));
+            Ok(())
+        })));
     for program in os::args().iter().skip(1) {
         print!("program: {{ {} }} => ", program);
         match parse::parse(program.as_slice()) {

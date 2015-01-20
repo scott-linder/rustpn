@@ -18,5 +18,6 @@ pub type Stack = Vec<StackItem>;
 pub enum StackItem {
     Integer(i64),
     String(String),
+    Boolean(bool),
     Block(Block),
 }
