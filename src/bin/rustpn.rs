@@ -18,28 +18,28 @@ fn pop_integer(stack: &mut Stack) -> vm::Result<i64> {
 fn main() {
     let mut vm = Vm::new();
     vm.methods.insert(String::from_str("+"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             let n2 = try!(pop_integer(&mut vm.stack));
             let n1 = try!(pop_integer(&mut vm.stack));
             vm.stack.push(StackItem::Integer(n1 + n2));
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("-"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             let n2 = try!(pop_integer(&mut vm.stack));
             let n1 = try!(pop_integer(&mut vm.stack));
             vm.stack.push(StackItem::Integer(n1 - n2));
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("*"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             let n2 = try!(pop_integer(&mut vm.stack));
             let n1 = try!(pop_integer(&mut vm.stack));
             vm.stack.push(StackItem::Integer(n1 * n2));
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("/"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             let n2 = try!(pop_integer(&mut vm.stack));
             let n1 = try!(pop_integer(&mut vm.stack));
             match n2 {
@@ -47,9 +47,9 @@ fn main() {
                 _ => vm.stack.push(StackItem::Integer(n1 / n2)),
             }
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("fn"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             let block = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
             let name = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
             match (name, block) {
@@ -58,24 +58,24 @@ fn main() {
                 _ => return Err(vm::Error::TypeError),
             }
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("false"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             vm.stack.push(StackItem::Boolean(false));
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("true"),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             vm.stack.push(StackItem::Boolean(true));
             Ok(())
-        })));
+        }))));
     vm.methods.insert(String::from_str("=="),
-        Rc::new(Method::Builtin(box |vm| {
+        Rc::new(Method::Builtin(Box::new(|vm| {
             let a = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
             let b = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
             vm.stack.push(StackItem::Boolean(a == b));
             Ok(())
-        })));
+        }))));
     for program in os::args().iter().skip(1) {
         print!("program: {{ {} }} => ", program);
         match parse::parse(program.as_slice()) {

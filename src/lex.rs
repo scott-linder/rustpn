@@ -76,7 +76,7 @@ pub struct Lexer<'a> {
     chars: ReplaceOneChars<'a>,
 }
 
-const DECIMAL: uint = 10u;
+const DECIMAL: usize = 10us;
 
 impl<'a> Lexer<'a> {
     /// Create a new lexer over the provided source code.
