@@ -3,13 +3,15 @@
 use std::result::Result::{Ok, Err};
 use std::str::Chars;
 use std::{error, result};
+use std::fmt;
+use std::error::Error as StdError;
 use token::Token;
 
 /// Result of a lexer operation.
 pub type Result<T> = result::Result<T, Error>;
 
 /// Possible errors due to a lexer operation.
-#[derive(PartialEq, Eq, Clone, Show)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Error {
     UnknownEscape,
     IncompleteEscape,
@@ -18,6 +20,12 @@ pub enum Error {
     UnclosedString,
     MalformedInteger,
     Unknown,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
 }
 
 impl error::Error for Error {
@@ -76,7 +84,7 @@ pub struct Lexer<'a> {
     chars: ReplaceOneChars<'a>,
 }
 
-const DECIMAL: usize = 10us;
+const DECIMAL: u32 = 10u32;
 
 impl<'a> Lexer<'a> {
     /// Create a new lexer over the provided source code.
@@ -88,7 +96,7 @@ impl<'a> Lexer<'a> {
 
     /// Consume any remaining chars in underlying source.
     fn consume(&mut self) {
-        for _ in self.chars { }
+        for _ in &mut self.chars { }
     }
 
     fn whitespace(&mut self) -> Result<Token> {

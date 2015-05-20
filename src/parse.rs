@@ -2,18 +2,27 @@
 
 use std::result::Result::{Ok, Err};
 use std::{error, result};
+use std::fmt;
+use std::convert::From;
 use item::{Block, BlockItem, StackItem};
 use token::Token;
+use std::error::Error as StdError;
 use lex;
 
 /// Result of a parser operation.
 pub type Result = result::Result<Block, Error>;
 
 /// Possible error due to parser operation.
-#[derive(PartialEq, Eq, Clone, Show)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Error {
     UnclosedBlock,
     LexError(lex::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
 }
 
 impl error::Error for Error {
@@ -25,8 +34,8 @@ impl error::Error for Error {
     }
 }
 
-impl error::FromError<lex::Error> for Error {
-    fn from_error(err: lex::Error) -> Error {
+impl From<lex::Error> for Error {
+    fn from(err: lex::Error) -> Error {
         Error::LexError(err)
     }
 }
@@ -54,7 +63,7 @@ fn parse_block(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result {
         };
         match token {
             Token::Integer(s) => {
-                let i = s.parse()
+                let i = s.parse().ok()
                     .expect("lexer should have rejected integer");
                 block.push(BlockItem::Literal(StackItem::Integer(i)));
             },

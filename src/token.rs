@@ -1,7 +1,7 @@
 //! Tokens.
 
 /// Input tokens produced by lexer.
-#[derive(PartialEq, Eq, Clone, Show)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Token {
     Integer(String),
     String(String),

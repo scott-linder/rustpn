@@ -4,7 +4,7 @@
 pub type Block = Vec<BlockItem>;
 
 /// Language items only valid in a block.
-#[derive(PartialEq, Eq, Clone, Show)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum BlockItem {
     Call(String),
     Literal(StackItem),
@@ -14,7 +14,7 @@ pub enum BlockItem {
 pub type Stack = Vec<StackItem>;
 
 /// Language items only valid on the stack.
-#[derive(PartialEq, Eq, Clone, Show)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum StackItem {
     Integer(i64),
     String(String),
