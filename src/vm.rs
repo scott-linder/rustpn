@@ -5,7 +5,7 @@ use std::{error, result};
 use std::fmt;
 use std::collections::HashMap;
 use std::error::Error as StdError;
-use item::{Block, BlockItem, Stack};
+use item::{Block, BlockItem, Stack, StackItem};
 
 pub type Result<T> = result::Result<T, Error>;
 
@@ -35,7 +35,7 @@ impl error::Error for Error {
 }
 
 pub enum Method {
-    Builtin(Box<Fn(&mut Vm) -> Result<()> + 'static>),
+    Builtin(Box<Fn(&mut Vm) -> Result<()>>),
     Block(Block),
 }
 
@@ -45,13 +45,6 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn new() -> Vm {
-        Vm {
-            stack: Vec::new(),
-            methods: HashMap::new(),
-        }
-    }
-
     pub fn run(&mut self, item: &BlockItem) -> Result<()> {
         match *item {
             BlockItem::Literal(ref stack_item) =>
@@ -75,5 +68,81 @@ impl Vm {
             try!(self.run(item));
         }
         Ok(())
+    }
+
+    pub fn builtin(&mut self, name: String, method: Box<Fn(&mut Vm)
+                   -> Result<()>>) {
+        self.methods.insert(name, Rc::new(Method::Builtin(method)));
+    }
+
+    pub fn pop_integer(&mut self) -> Result<i64> {
+        match self.stack.pop() {
+            Some(StackItem::Integer(i)) => Ok(i),
+            Some(..) => Err(Error::TypeError),
+            None => Err(Error::StackUnderflow),
+        }
+    }
+
+    pub fn new() -> Vm {
+        Vm {
+            stack: Vec::new(),
+            methods: HashMap::new(),
+        }
+    }
+
+    pub fn new_with_builtins() -> Vm {
+        let mut vm = Vm::new();
+        vm.builtin("+".into(), Box::new(|vm| {
+            let n2 = try!(vm.pop_integer());
+            let n1 = try!(vm.pop_integer());
+            vm.stack.push(StackItem::Integer(n1 + n2));
+            Ok(())
+        }));
+        vm.builtin("-".into(), Box::new(|vm| {
+            let n2 = try!(vm.pop_integer());
+            let n1 = try!(vm.pop_integer());
+            vm.stack.push(StackItem::Integer(n1 - n2));
+            Ok(())
+        }));
+        vm.builtin("*".into(), Box::new(|vm| {
+            let n2 = try!(vm.pop_integer());
+            let n1 = try!(vm.pop_integer());
+            vm.stack.push(StackItem::Integer(n1 * n2));
+            Ok(())
+        }));
+        vm.builtin("/".into(), Box::new(|vm| {
+            let n2 = try!(vm.pop_integer());
+            let n1 = try!(vm.pop_integer());
+            match n2 {
+                0 => return Err(Error::DivideByZero),
+                _ => vm.stack.push(StackItem::Integer(n1 / n2)),
+            }
+            Ok(())
+        }));
+        vm.builtin("fn".into(), Box::new(|vm| {
+            let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let name = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            match (name, block) {
+                (StackItem::String(s), StackItem::Block(b)) =>
+                    { vm.methods.insert(s, Rc::new(Method::Block(b))); },
+                _ => return Err(Error::TypeError),
+            }
+            Ok(())
+        }));
+        vm.builtin("false".into(), Box::new(|vm| {
+            vm.stack.push(StackItem::Boolean(false));
+            Ok(())
+        }));
+        vm.builtin("true".into(), Box::new(|vm| {
+            vm.stack.push(StackItem::Boolean(true));
+            Ok(())
+        }));
+        vm.builtin("==".into(), Box::new(|vm| {
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            vm.stack.push(StackItem::Boolean(a == b));
+            Ok(())
+        }));
+        vm
     }
 }

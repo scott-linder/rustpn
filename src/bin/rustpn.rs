@@ -1,83 +1,15 @@
 extern crate rustpn;
 
 use rustpn::parse;
-use rustpn::vm::{self, Vm, Method};
-use rustpn::item::{Stack, StackItem};
-use std::rc::Rc;
+use rustpn::vm::Vm;
 use std::error::Error;
-use std::env::args;
-
-fn pop_integer(stack: &mut Stack) -> vm::Result<i64> {
-    match stack.pop() {
-        Some(StackItem::Integer(i)) => Ok(i),
-        Some(..) => Err(vm::Error::TypeError),
-        None => Err(vm::Error::StackUnderflow),
-    }
-}
+use std::io::{stdin, BufRead};
 
 fn main() {
-    let mut vm = Vm::new();
-    vm.methods.insert("+".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            let n2 = try!(pop_integer(&mut vm.stack));
-            let n1 = try!(pop_integer(&mut vm.stack));
-            vm.stack.push(StackItem::Integer(n1 + n2));
-            Ok(())
-        }))));
-    vm.methods.insert("-".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            let n2 = try!(pop_integer(&mut vm.stack));
-            let n1 = try!(pop_integer(&mut vm.stack));
-            vm.stack.push(StackItem::Integer(n1 - n2));
-            Ok(())
-        }))));
-    vm.methods.insert("*".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            let n2 = try!(pop_integer(&mut vm.stack));
-            let n1 = try!(pop_integer(&mut vm.stack));
-            vm.stack.push(StackItem::Integer(n1 * n2));
-            Ok(())
-        }))));
-    vm.methods.insert("/".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            let n2 = try!(pop_integer(&mut vm.stack));
-            let n1 = try!(pop_integer(&mut vm.stack));
-            match n2 {
-                0 => return Err(vm::Error::DivideByZero),
-                _ => vm.stack.push(StackItem::Integer(n1 / n2)),
-            }
-            Ok(())
-        }))));
-    vm.methods.insert("fn".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            let block = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
-            let name = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
-            match (name, block) {
-                (StackItem::String(s), StackItem::Block(b)) =>
-                    { vm.methods.insert(s, Rc::new(Method::Block(b))); },
-                _ => return Err(vm::Error::TypeError),
-            }
-            Ok(())
-        }))));
-    vm.methods.insert("false".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            vm.stack.push(StackItem::Boolean(false));
-            Ok(())
-        }))));
-    vm.methods.insert("true".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            vm.stack.push(StackItem::Boolean(true));
-            Ok(())
-        }))));
-    vm.methods.insert("==".into(),
-        Rc::new(Method::Builtin(Box::new(|vm| {
-            let a = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
-            let b = try!(vm.stack.pop().ok_or(vm::Error::StackUnderflow));
-            vm.stack.push(StackItem::Boolean(a == b));
-            Ok(())
-        }))));
-    for program in args().skip(1) {
-        print!("program: {{ {} }} => ", program);
+    let mut vm = Vm::new_with_builtins();
+    let stdin = stdin();
+    for program in stdin.lock().lines() {
+        let program = program.unwrap();
         match parse::parse(&*program) {
             Ok(ref p) => match vm.run_block(p) {
                 Ok(()) => println!("stack: {:?}", vm.stack),
