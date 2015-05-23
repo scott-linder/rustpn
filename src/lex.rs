@@ -86,6 +86,11 @@ pub struct Lexer<'a> {
 
 const DECIMAL: u32 = 10u32;
 
+
+fn is_whitespace_or_close_brace(c: char) -> bool {
+    c.is_whitespace() || c == '}'
+}
+
 impl<'a> Lexer<'a> {
     /// Create a new lexer over the provided source code.
     pub fn new(src: &'a str) -> Lexer<'a> {
@@ -117,7 +122,7 @@ impl<'a> Lexer<'a> {
             match self.chars.next() {
                 Some(c) => if c.is_digit(DECIMAL) {
                     s.push(c);
-                } else if c.is_whitespace() {
+                } else if is_whitespace_or_close_brace(c) {
                     self.chars.replace(c);
                     return Ok(Token::Integer(s));
                 } else {
@@ -169,7 +174,7 @@ impl<'a> Lexer<'a> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
-                Some(c) => if c.is_whitespace() {
+                Some(c) => if is_whitespace_or_close_brace(c) {
                     return Ok(Token::Call(s));
                 } else {
                     s.push(c);
