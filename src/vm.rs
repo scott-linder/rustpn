@@ -143,6 +143,19 @@ impl Vm {
             vm.stack.push(StackItem::Boolean(a == b));
             Ok(())
         }));
+        vm.builtin("if".into(), Box::new(|vm| {
+            let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let condition = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let (StackItem::Block(block), StackItem::Boolean(condition)) =
+                    (block, condition) {
+                if condition {
+                    try!(vm.run_block(&block))
+                }
+            } else {
+                return Err(Error::TypeError);
+            }
+            Ok(())
+        }));
         vm
     }
 }

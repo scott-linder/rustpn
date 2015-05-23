@@ -87,6 +87,7 @@ pub struct Lexer<'a> {
 const DECIMAL: u32 = 10u32;
 
 
+#[inline(always)]
 fn is_whitespace_or_close_brace(c: char) -> bool {
     c.is_whitespace() || c == '}'
 }
