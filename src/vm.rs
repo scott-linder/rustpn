@@ -129,6 +129,23 @@ impl Vm {
             }
             Ok(())
         }));
+        vm.builtin("swap".into(), Box::new(|vm| {
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            vm.stack.push(a);
+            vm.stack.push(b);
+            Ok(())
+        }));
+        vm.builtin("dup".into(), Box::new(|vm| {
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            vm.stack.push(a.clone());
+            vm.stack.push(a);
+            Ok(())
+        }));
+        vm.builtin("pop".into(), Box::new(|vm| {
+            let _ = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            Ok(())
+        }));
         vm.builtin("false".into(), Box::new(|vm| {
             vm.stack.push(StackItem::Boolean(false));
             Ok(())
@@ -137,10 +154,19 @@ impl Vm {
             vm.stack.push(StackItem::Boolean(true));
             Ok(())
         }));
-        vm.builtin("==".into(), Box::new(|vm| {
+        vm.builtin("eq".into(), Box::new(|vm| {
             let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             vm.stack.push(StackItem::Boolean(a == b));
+            Ok(())
+        }));
+        vm.builtin("not".into(), Box::new(|vm| {
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let StackItem::Boolean(boolean) = a {
+                vm.stack.push(StackItem::Boolean(!boolean));
+            } else {
+                return Err(Error::TypeError)
+            }
             Ok(())
         }));
         vm.builtin("if".into(), Box::new(|vm| {
@@ -149,7 +175,30 @@ impl Vm {
             if let (StackItem::Block(block), StackItem::Boolean(condition)) =
                     (block, condition) {
                 if condition {
-                    try!(vm.run_block(&block))
+                    try!(vm.run_block(&block));
+                }
+            } else {
+                return Err(Error::TypeError);
+            }
+            Ok(())
+        }));
+        vm.builtin("while".into(), Box::new(|vm| {
+            let action_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let condition_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let (StackItem::Block(action_block), StackItem::Block(condition_block)) =
+                    (action_block, condition_block) {
+                loop {
+                    try!(vm.run_block(&condition_block));
+                    let condition = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+                    if let StackItem::Boolean(condition) = condition {
+                        if condition {
+                            try!(vm.run_block(&action_block));
+                        } else {
+                            break;
+                        }
+                    } else {
+                        return Err(Error::TypeError);
+                    }
                 }
             } else {
                 return Err(Error::TypeError);
