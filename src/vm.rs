@@ -70,9 +70,9 @@ impl Vm {
         Ok(())
     }
 
-    pub fn builtin(&mut self, name: String, method: Box<Fn(&mut Vm)
-                   -> Result<()>>) {
-        self.methods.insert(name, Rc::new(Method::Builtin(method)));
+    pub fn builtin<S>(&mut self, name: S, method: Box<Fn(&mut Vm)
+                   -> Result<()>>) where S: Into<String> {
+        self.methods.insert(name.into(), Rc::new(Method::Builtin(method)));
     }
 
     pub fn pop_integer(&mut self) -> Result<i64> {
@@ -92,25 +92,25 @@ impl Vm {
 
     pub fn new_with_builtins() -> Vm {
         let mut vm = Vm::new();
-        vm.builtin("+".into(), Box::new(|vm| {
+        vm.builtin("+", Box::new(|vm| {
             let n2 = try!(vm.pop_integer());
             let n1 = try!(vm.pop_integer());
             vm.stack.push(StackItem::Integer(n1 + n2));
             Ok(())
         }));
-        vm.builtin("-".into(), Box::new(|vm| {
+        vm.builtin("-", Box::new(|vm| {
             let n2 = try!(vm.pop_integer());
             let n1 = try!(vm.pop_integer());
             vm.stack.push(StackItem::Integer(n1 - n2));
             Ok(())
         }));
-        vm.builtin("*".into(), Box::new(|vm| {
+        vm.builtin("*", Box::new(|vm| {
             let n2 = try!(vm.pop_integer());
             let n1 = try!(vm.pop_integer());
             vm.stack.push(StackItem::Integer(n1 * n2));
             Ok(())
         }));
-        vm.builtin("/".into(), Box::new(|vm| {
+        vm.builtin("/", Box::new(|vm| {
             let n2 = try!(vm.pop_integer());
             let n1 = try!(vm.pop_integer());
             match n2 {
@@ -119,7 +119,7 @@ impl Vm {
             }
             Ok(())
         }));
-        vm.builtin("fn".into(), Box::new(|vm| {
+        vm.builtin("fn", Box::new(|vm| {
             let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let name = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             match (name, block) {
@@ -129,38 +129,38 @@ impl Vm {
             }
             Ok(())
         }));
-        vm.builtin("swap".into(), Box::new(|vm| {
+        vm.builtin("swap", Box::new(|vm| {
             let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             vm.stack.push(a);
             vm.stack.push(b);
             Ok(())
         }));
-        vm.builtin("dup".into(), Box::new(|vm| {
+        vm.builtin("dup", Box::new(|vm| {
             let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             vm.stack.push(a.clone());
             vm.stack.push(a);
             Ok(())
         }));
-        vm.builtin("pop".into(), Box::new(|vm| {
+        vm.builtin("pop", Box::new(|vm| {
             let _ = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             Ok(())
         }));
-        vm.builtin("false".into(), Box::new(|vm| {
+        vm.builtin("false", Box::new(|vm| {
             vm.stack.push(StackItem::Boolean(false));
             Ok(())
         }));
-        vm.builtin("true".into(), Box::new(|vm| {
+        vm.builtin("true", Box::new(|vm| {
             vm.stack.push(StackItem::Boolean(true));
             Ok(())
         }));
-        vm.builtin("eq".into(), Box::new(|vm| {
+        vm.builtin("eq", Box::new(|vm| {
             let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             vm.stack.push(StackItem::Boolean(a == b));
             Ok(())
         }));
-        vm.builtin("not".into(), Box::new(|vm| {
+        vm.builtin("not", Box::new(|vm| {
             let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             if let StackItem::Boolean(boolean) = a {
                 vm.stack.push(StackItem::Boolean(!boolean));
@@ -169,7 +169,7 @@ impl Vm {
             }
             Ok(())
         }));
-        vm.builtin("if".into(), Box::new(|vm| {
+        vm.builtin("if", Box::new(|vm| {
             let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let condition = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             if let (StackItem::Block(block), StackItem::Boolean(condition)) =
@@ -182,7 +182,7 @@ impl Vm {
             }
             Ok(())
         }));
-        vm.builtin("while".into(), Box::new(|vm| {
+        vm.builtin("while", Box::new(|vm| {
             let action_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let condition_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             if let (StackItem::Block(action_block), StackItem::Block(condition_block)) =
