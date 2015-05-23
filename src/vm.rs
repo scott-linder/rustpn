@@ -9,17 +9,20 @@ use item::{Block, BlockItem, Stack, StackItem};
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Error {
     TypeError,
     DivideByZero,
     StackUnderflow,
-    UnknownMethod,
+    UnknownMethod(String),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+        match *self {
+            Error::UnknownMethod(ref s) => write!(f, "{}: {}", self.description(), s),
+            _ => write!(f, "{}", self.description()),
+        }
     }
 }
 
@@ -29,7 +32,7 @@ impl error::Error for Error {
             Error::DivideByZero => "Divided by zero",
             Error::TypeError => "Type error",
             Error::StackUnderflow => "Stack underflow",
-            Error::UnknownMethod => "Unknown method",
+            Error::UnknownMethod(_) => "Unknown method",
         }
     }
 }
@@ -52,7 +55,7 @@ impl Vm {
             BlockItem::Call(ref name) => {
                 let method = match self.methods.get(&*name) {
                     Some(m) => m.clone(),
-                    None => return Err(Error::UnknownMethod),
+                    None => return Err(Error::UnknownMethod(name.clone())),
                 };
                 try!(match *method {
                     Method::Builtin(ref f) => (**f)(self),
@@ -130,10 +133,27 @@ impl Vm {
             Ok(())
         }));
         vm.builtin("swap", Box::new(|vm| {
-            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
-            vm.stack.push(a);
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             vm.stack.push(b);
+            vm.stack.push(a);
+            Ok(())
+        }));
+        vm.builtin("over", Box::new(|vm| {
+            let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            vm.stack.push(a.clone());
+            vm.stack.push(b);
+            vm.stack.push(a);
+            Ok(())
+        }));
+        vm.builtin("rot", Box::new(|vm| {
+            let c = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            vm.stack.push(b);
+            vm.stack.push(c);
+            vm.stack.push(a);
             Ok(())
         }));
         vm.builtin("dup", Box::new(|vm| {
@@ -199,6 +219,19 @@ impl Vm {
                     } else {
                         return Err(Error::TypeError);
                     }
+                }
+            } else {
+                return Err(Error::TypeError);
+            }
+            Ok(())
+        }));
+        vm.builtin("times", Box::new(|vm| {
+            let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let times = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let (StackItem::Block(block), StackItem::Integer(times)) =
+                    (block, times) {
+                for _ in 0..times {
+                    try!(vm.run_block(&block));
                 }
             } else {
                 return Err(Error::TypeError);

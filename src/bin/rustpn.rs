@@ -2,7 +2,6 @@ extern crate rustpn;
 
 use rustpn::parse;
 use rustpn::vm::Vm;
-use std::error::Error;
 use std::io::{stdin, BufRead};
 
 fn main() {
@@ -13,12 +12,12 @@ fn main() {
         match parse::parse(&*program) {
             Ok(ref p) => match vm.run_block(p) {
                 Ok(()) => println!("{:?}", vm.stack),
-                Err(e) => println!("runtime error: {}", e.description()),
+                Err(e) => println!("runtime error: {}", e),
             },
             Err(e) => match e {
                 parse::Error::LexError(e) =>
-                    println!("lexer error: {}", e.description()),
-                _ => println!("parser error: {}", e.description()),
+                    println!("lexer error: {}", e),
+                _ => println!("parser error: {}", e),
             }
         }
     }
