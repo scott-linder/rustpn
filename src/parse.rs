@@ -4,13 +4,14 @@ use std::result::Result::{Ok, Err};
 use std::{error, result};
 use std::fmt;
 use std::convert::From;
+use std::str::FromStr;
 use item::{Block, BlockItem, StackItem};
 use token::Token;
 use std::error::Error as StdError;
 use lex;
 
 /// Result of a parser operation.
-pub type Result = result::Result<Block, Error>;
+pub type Result<I> = result::Result<Block<I>, Error>;
 
 /// Possible error due to parser operation.
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -51,7 +52,8 @@ enum BlockLevel {
 // Recursive parsing function; could be called just "parse" but we use that
 // for the public helper function which creates a lexer and creates the
 // top block.
-fn parse_block(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result {
+fn parse_block<I>(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result<I> 
+        where I: FromStr {
     let mut block = Vec::new();
     loop {
         let token = match lexer.next() {
@@ -82,7 +84,8 @@ fn parse_block(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result {
 }
 
 /// Attempt to parse a source string.
-pub fn parse(src: &str) -> Result {
+pub fn parse<I>(src: &str) -> Result<I>
+        where I: FromStr {
     let mut lexer = lex::Lexer::new(src);
     parse_block(&mut lexer, BlockLevel::Top)
 }

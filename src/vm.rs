@@ -5,6 +5,8 @@ use std::{error, result};
 use std::fmt;
 use std::collections::HashMap;
 use std::error::Error as StdError;
+use num::integer::Integer;
+use num::{zero, one};
 use item::{Block, BlockItem, Stack, StackItem};
 
 pub type Result<T> = result::Result<T, Error>;
@@ -37,18 +39,18 @@ impl error::Error for Error {
     }
 }
 
-pub enum Method {
-    Builtin(Box<Fn(&mut Vm) -> Result<()>>),
-    Block(Block),
+pub enum Method<I> {
+    Builtin(Box<Fn(&mut Vm<I>) -> Result<()>>),
+    Block(Block<I>),
 }
 
-pub struct Vm {
-    pub stack: Stack,
-    pub methods: HashMap<String, Rc<Method>>,
+pub struct Vm<I> {
+    pub stack: Stack<I>,
+    pub methods: HashMap<String, Rc<Method<I>>>,
 }
 
-impl Vm {
-    pub fn run(&mut self, item: &BlockItem) -> Result<()> {
+impl<I> Vm<I> where I: Integer + Clone {
+    pub fn run(&mut self, item: &BlockItem<I>) -> Result<()> {
         match *item {
             BlockItem::Literal(ref stack_item) =>
                 self.stack.push(stack_item.clone()),
@@ -66,19 +68,19 @@ impl Vm {
         Ok(())
     }
 
-    pub fn run_block(&mut self, block: &Block) -> Result<()> {
+    pub fn run_block(&mut self, block: &Block<I>) -> Result<()> {
         for item in block.iter() {
             try!(self.run(item));
         }
         Ok(())
     }
 
-    pub fn builtin<S>(&mut self, name: S, method: Box<Fn(&mut Vm)
+    pub fn builtin<S>(&mut self, name: S, method: Box<Fn(&mut Vm<I>)
                    -> Result<()>>) where S: Into<String> {
         self.methods.insert(name.into(), Rc::new(Method::Builtin(method)));
     }
 
-    pub fn pop_integer(&mut self) -> Result<i64> {
+    pub fn pop_integer(&mut self) -> Result<I> {
         match self.stack.pop() {
             Some(StackItem::Integer(i)) => Ok(i),
             Some(..) => Err(Error::TypeError),
@@ -86,15 +88,15 @@ impl Vm {
         }
     }
 
-    pub fn new() -> Vm {
+    pub fn new() -> Vm<I> {
         Vm {
             stack: Vec::new(),
             methods: HashMap::new(),
         }
     }
 
-    pub fn new_with_builtins() -> Vm {
-        let mut vm = Vm::new();
+    pub fn new_with_builtins() -> Vm<I> {
+        let mut vm = Vm::<I>::new();
         vm.builtin("+", Box::new(|vm| {
             let n2 = try!(vm.pop_integer());
             let n1 = try!(vm.pop_integer());
@@ -116,10 +118,10 @@ impl Vm {
         vm.builtin("/", Box::new(|vm| {
             let n2 = try!(vm.pop_integer());
             let n1 = try!(vm.pop_integer());
-            match n2 {
-                0 => return Err(Error::DivideByZero),
-                _ => vm.stack.push(StackItem::Integer(n1 / n2)),
+            if n2 == zero() {
+                return Err(Error::DivideByZero);
             }
+            vm.stack.push(StackItem::Integer(n1 / n2));
             Ok(())
         }));
         vm.builtin("fn", Box::new(|vm| {
@@ -228,10 +230,11 @@ impl Vm {
         vm.builtin("times", Box::new(|vm| {
             let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let times = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
-            if let (StackItem::Block(block), StackItem::Integer(times)) =
+            if let (StackItem::Block(block), StackItem::Integer(mut times)) =
                     (block, times) {
-                for _ in 0..times {
+                while times > zero() {
                     try!(vm.run_block(&block));
+                    times = times - one::<I>();
                 }
             } else {
                 return Err(Error::TypeError);

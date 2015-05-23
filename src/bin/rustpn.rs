@@ -5,7 +5,7 @@ use rustpn::vm::Vm;
 use std::io::{stdin, BufRead};
 
 fn main() {
-    let mut vm = Vm::new_with_builtins();
+    let mut vm = Vm::<i64>::new_with_builtins();
     let stdin = stdin();
     for program in stdin.lock().lines() {
         let program = program.unwrap();
