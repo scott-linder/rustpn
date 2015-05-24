@@ -128,7 +128,7 @@ impl<I> Vm<I> where I: Integer + Clone {
             let block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let name = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             match (name, block) {
-                (StackItem::String(s), StackItem::Block(b)) =>
+                (StackItem::Symbol(s), StackItem::Block(b)) =>
                     { vm.methods.insert(s, Rc::new(Method::Block(b))); },
                 _ => return Err(Error::TypeError),
             }

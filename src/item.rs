@@ -30,6 +30,7 @@ pub enum StackItem<I> {
     Integer(I),
     String(String),
     Boolean(bool),
+    Symbol(String),
     Block(Block<I>),
 }
 
@@ -39,6 +40,7 @@ impl<I> fmt::Display for StackItem<I> where I: fmt::Display {
             StackItem::Integer(ref i) => write!(f, "{}", *i),
             StackItem::String(ref s) => write!(f, "\"{}\"", *s),
             StackItem::Boolean(b) => write!(f, "{}", b),
+            StackItem::Symbol(ref s) => write!(f, ":{}", *s),
             StackItem::Block(ref b) => {
                 try!(write!(f, "{{ "));
                 for item in b {

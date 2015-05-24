@@ -81,6 +81,7 @@ impl<'a> Iterator for ReplaceOneChars<'a> {
 pub enum Token {
     Integer(String),
     String(String),
+    Symbol(String),
     Call(String),
     OpenBrace,
     CloseBrace,
@@ -181,16 +182,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn call(&mut self) -> Result<Token> {
+    fn symbol(&mut self) -> Result<String> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
                 Some(c) => if is_whitespace_or_close_brace(c) {
-                    return Ok(Token::Call(s));
+                    return Ok(s);
                 } else {
                     s.push(c);
                 },
-                None => return Ok(Token::Call(s)),
+                None => return Ok(s),
             }
         }
     }
@@ -218,9 +219,11 @@ impl<'a> Iterator for Lexer<'a> {
                 Ok(Token::OpenBrace)
             } else if c == '}' {
                 Ok(Token::CloseBrace)
+            } else if c == ':' {
+                self.symbol().map(|s| Token::Symbol(s))
             } else {
                 self.chars.replace(c);
-                self.call()
+                self.symbol().map(|s| Token::Call(s))
             };
             // If we have errored, the rest of the source is invalid.
             if result.is_err() {

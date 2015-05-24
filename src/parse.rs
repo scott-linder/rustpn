@@ -70,6 +70,7 @@ fn parse_block<I>(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result<I>
             },
             Token::String(s) =>
                 block.push(BlockItem::Literal(StackItem::String(s))),
+            Token::Symbol(s) => block.push(BlockItem::Literal(StackItem::Symbol(s))),
             Token::Call(s) => block.push(BlockItem::Call(s)),
             Token::OpenBrace => {
                 let nested_block = try!(parse_block(lexer, BlockLevel::Nested));
