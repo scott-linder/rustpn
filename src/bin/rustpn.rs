@@ -1,11 +1,13 @@
 extern crate rustpn;
+extern crate num;
 
 use rustpn::parse;
 use rustpn::vm::Vm;
 use std::io::{stdin, BufRead};
+use num::bigint::BigInt;
 
 fn main() {
-    let mut vm = Vm::<i64>::new_with_builtins();
+    let mut vm = Vm::<BigInt>::new_with_builtins();
     let stdin = stdin();
     for program in stdin.lock().lines() {
         let program = program.unwrap();
