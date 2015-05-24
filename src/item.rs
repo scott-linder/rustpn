@@ -1,5 +1,7 @@
 //! Language items and abstract-syntax tree.
 
+use std::fmt;
+
 /// The equivalent of a routine/function.
 pub type Block<I> = Vec<BlockItem<I>>;
 
@@ -8,6 +10,15 @@ pub type Block<I> = Vec<BlockItem<I>>;
 pub enum BlockItem<I> {
     Call(String),
     Literal(StackItem<I>),
+}
+
+impl<I> fmt::Display for BlockItem<I> where I: fmt::Display {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            BlockItem::Call(ref s) => write!(f, "{}", *s),
+            BlockItem::Literal(ref s) => write!(f, "{}", *s),
+        }
+    }
 }
 
 /// The global stack.
@@ -20,4 +31,22 @@ pub enum StackItem<I> {
     String(String),
     Boolean(bool),
     Block(Block<I>),
+}
+
+impl<I> fmt::Display for StackItem<I> where I: fmt::Display {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            StackItem::Integer(ref i) => write!(f, "{}", *i),
+            StackItem::String(ref s) => write!(f, "\"{}\"", *s),
+            StackItem::Boolean(b) => write!(f, "{}", b),
+            StackItem::Block(ref b) => {
+                try!(write!(f, "{{ "));
+                for item in b {
+                    try!(write!(f, "{}", item))
+                }
+                try!(write!(f, " }}"));
+                Ok(())
+            },
+        }
+    }
 }

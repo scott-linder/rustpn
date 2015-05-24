@@ -11,7 +11,7 @@ fn main() {
         let program = program.unwrap();
         match parse::parse(&*program) {
             Ok(ref p) => match vm.run_block(p) {
-                Ok(()) => println!("{:?}", vm.stack),
+                Ok(()) => println!("{}", vm),
                 Err(e) => println!("runtime error: {}", e),
             },
             Err(e) => match e {

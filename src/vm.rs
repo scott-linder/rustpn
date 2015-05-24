@@ -244,3 +244,12 @@ impl<I> Vm<I> where I: Integer + Clone {
         vm
     }
 }
+
+impl<I> fmt::Display for Vm<I> where I: fmt::Display {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for item in &self.stack {
+            try!(write!(f, "{} ", item));
+        }
+        Ok(())
+    }
+}
