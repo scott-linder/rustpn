@@ -6,9 +6,8 @@ use std::fmt;
 use std::convert::From;
 use std::str::FromStr;
 use item::{Block, BlockItem, StackItem};
-use token::Token;
+use lex::{self, Token};
 use std::error::Error as StdError;
-use lex;
 
 /// Result of a parser operation.
 pub type Result<I> = result::Result<Block<I>, Error>;

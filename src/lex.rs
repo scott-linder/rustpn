@@ -5,7 +5,6 @@ use std::str::Chars;
 use std::{error, result};
 use std::fmt;
 use std::error::Error as StdError;
-use token::Token;
 
 /// Result of a lexer operation.
 pub type Result<T> = result::Result<T, Error>;
@@ -75,6 +74,18 @@ impl<'a> Iterator for ReplaceOneChars<'a> {
             None => self.chars.next(),
         }
     }
+}
+
+/// Input tokens produced by lexer.
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum Token {
+    Integer(String),
+    String(String),
+    Call(String),
+    OpenBrace,
+    CloseBrace,
+    Whitespace,
+    Comment,
 }
 
 /// The lexer is a tokenizer implemented as an iterator over a string.
