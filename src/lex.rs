@@ -158,9 +158,12 @@ impl<'a> Lexer<'a> {
 
     fn escape(&mut self) -> Result<char> {
         match self.chars.next() {
-            Some(c) => match c {
-                '"' => return Ok('"'),
-                _ => return Err(Error::UnknownEscape),
+            Some(c) => return match c {
+                '"' => Ok('"'),
+                'n' => Ok('\n'),
+                'r' => Ok('\r'),
+                't' => Ok('\t'),
+                _ => Err(Error::UnknownEscape),
             },
             None => return Err(Error::IncompleteEscape),
         }
@@ -170,12 +173,10 @@ impl<'a> Lexer<'a> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
-                Some(c) => if c == '\\' {
-                    s.push(try!(self.escape()));
-                } else if c == '"' {
-                    return Ok(Token::String(s));
-                } else {
-                    s.push(c);
+                Some(c) => match c {
+                    '\\' => s.push(try!(self.escape())),
+                    '"' => return Ok(Token::String(s)),
+                    _ => s.push(c),
                 },
                 None => return Err(Error::UnclosedString),
             }
