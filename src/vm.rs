@@ -204,6 +204,33 @@ impl<I> Vm<I> where I: Integer + Clone {
             }
             Ok(())
         }));
+        vm.builtin("ifelse", Box::new(|vm| {
+            let else_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let if_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let condition = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let (StackItem::Block(else_block), StackItem::Block(if_block), StackItem::Boolean(condition)) =
+                    (else_block, if_block, condition) {
+                if condition {
+                    try!(vm.run_block(&if_block));
+                } else {
+                    try!(vm.run_block(&else_block));
+                }
+            } else {
+                return Err(Error::TypeError);
+            }
+            Ok(())
+        }));
+        vm.builtin("or", Box::new(|vm| {
+            let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let (StackItem::Boolean(a), StackItem::Boolean(b)) =
+                    (a, b) {
+                vm.stack.push(StackItem::Boolean(a || b));
+            } else {
+                return Err(Error::TypeError);
+            }
+            Ok(())
+        }));
         vm.builtin("while", Box::new(|vm| {
             let action_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
             let condition_block = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
