@@ -18,7 +18,18 @@ pub enum Error {
     UnclosedComment,
     UnclosedString,
     MalformedInteger,
-    Unknown,
+}
+
+impl Error {
+    /// Whether this error recoverable if more input is provided.
+    pub fn is_recoverable(&self) -> bool {
+        match *self {
+            Error::IncompleteEscape
+                | Error::UnclosedComment
+                | Error::UnclosedString => true,
+            _ => false,
+        }
+    }
 }
 
 impl fmt::Display for Error {
@@ -36,7 +47,6 @@ impl error::Error for Error {
             Error::UnclosedComment => "Unclosed comment",
             Error::UnclosedString => "Unclosed string",
             Error::MalformedInteger => "Malformed integer",
-            Error::Unknown => "Unknown lexer error",
         }
     }
 }

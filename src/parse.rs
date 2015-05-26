@@ -19,6 +19,15 @@ pub enum Error {
     LexError(lex::Error),
 }
 
+impl Error {
+    pub fn is_recoverable(&self) -> bool {
+        match *self {
+            Error::UnclosedBlock => true,
+            Error::LexError(e) => e.is_recoverable(),
+        }
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.description())

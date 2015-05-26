@@ -15,8 +15,8 @@ pub enum BlockItem<I> {
 impl<I> fmt::Display for BlockItem<I> where I: fmt::Display {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            BlockItem::Call(ref s) => write!(f, "{}", *s),
-            BlockItem::Literal(ref s) => write!(f, "{}", *s),
+            BlockItem::Call(ref s) => write!(f, "{} ", *s),
+            BlockItem::Literal(ref s) => write!(f, "{} ", *s),
         }
     }
 }
@@ -46,7 +46,7 @@ impl<I> fmt::Display for StackItem<I> where I: fmt::Display {
                 for item in b {
                     try!(write!(f, "{}", item))
                 }
-                try!(write!(f, " }}"));
+                try!(write!(f, "}} "));
                 Ok(())
             },
         }
