@@ -247,8 +247,7 @@ impl<'a> Iterator for Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Lexer, Error};
-    use token::Token;
+    use super::{Lexer, Token, Error};
 
     #[test]
     fn test_empty_string_is_none() {
