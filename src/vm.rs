@@ -268,6 +268,16 @@ impl<I> Vm<I> where I: Integer + Clone {
             }
             Ok(())
         }));
+        vm.builtin("cat", Box::new(|vm| {
+            let b = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            let a = try!(vm.stack.pop().ok_or(Error::StackUnderflow));
+            if let (StackItem::String(b), StackItem::String(mut a)) =
+                    (b, a) {
+                a.push_str(&b);
+                vm.stack.push(StackItem::String(a));
+            }
+            Ok(())
+        }));
         vm
     }
 }
