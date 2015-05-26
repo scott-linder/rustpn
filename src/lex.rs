@@ -158,6 +158,15 @@ impl<'a> Lexer<'a> {
     fn comment(&mut self) -> Result<Token> {
         loop {
             match self.chars.next() {
+                Some('\n') | None => return Ok(Token::Comment),
+                _ => continue,
+            }
+        }
+    }
+
+    fn multi_comment(&mut self) -> Result<Token> {
+        loop {
+            match self.chars.next() {
                 Some(c) => if c == ')' {
                     return Ok(Token::Comment);
                 },
@@ -222,8 +231,10 @@ impl<'a> Iterator for Lexer<'a> {
             } else if c.is_digit(DECIMAL) {
                 self.chars.replace(c);
                 self.integer()
-            } else if c == '(' {
+            } else if c == '#' {
                 self.comment()
+            } else if c == '(' {
+                self.multi_comment()
             } else if c == '"' {
                 self.string()
             } else if c == '{' {
