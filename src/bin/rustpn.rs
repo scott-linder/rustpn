@@ -20,7 +20,7 @@ fn interactive<I>(vm: &mut Vm<I>) -> io::Result<()>
         program.push_str(&line);
         match parse::parse(&*program) {
             Ok(ref p) => match vm.run_block(p) {
-                Ok(()) => println!("{}", vm),
+                Ok(()) => println!("{}", vm.stack),
                 Err(e) => println!("runtime error: {}", e),
             },
             Err(e) => match e {
@@ -42,7 +42,7 @@ fn batch<I>(vm: &mut Vm<I>, filename: &str) -> io::Result<()>
     try!(file.read_to_string(&mut program));
     match parse::parse(&program) {
         Ok(ref p) => match vm.run_block(p) {
-            Ok(()) => println!("{}", vm),
+            Ok(()) => println!("{}", vm.stack),
             Err(e) => println!("runtime error: {}", e),
         },
         Err(e) => match e {

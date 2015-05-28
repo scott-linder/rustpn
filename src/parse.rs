@@ -89,7 +89,7 @@ fn parse_block<I>(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result<I>
             Token::Whitespace | Token::Comment => (),
         }
     }
-    Ok(block)
+    Ok(Block(block))
 }
 
 /// Attempt to parse a source string.

@@ -49,19 +49,11 @@ pub struct Vm<I> {
     pub methods: HashMap<String, Rc<Method<I>>>,
 }
 
-impl<I> fmt::Display for Vm<I> where I: fmt::Display {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for item in &self.stack {
-            try!(write!(f, "{} ", item));
-        }
-        Ok(())
-    }
-}
 
 impl<I> Vm<I> where I: Integer + Clone {
     pub fn new() -> Vm<I> {
         Vm {
-            stack: Vec::new(),
+            stack: Stack(Vec::new()),
             methods: HashMap::new(),
         }
     }
@@ -90,7 +82,7 @@ impl<I> Vm<I> where I: Integer + Clone {
     }
 
     pub fn run_block(&mut self, block: &Block<I>) -> Result<()> {
-        for item in block.iter() {
+        for item in block.0.iter() {
             try!(self.run(item));
         }
         Ok(())
@@ -102,7 +94,7 @@ impl<I> Vm<I> where I: Integer + Clone {
     }
 
     pub fn pop_integer(&mut self) -> Result<I> {
-        match self.stack.pop() {
+        match self.stack.0.pop() {
             Some(StackItem::Integer(i)) => Ok(i),
             Some(..) => Err(Error::TypeError),
             None => Err(Error::StackUnderflow),
