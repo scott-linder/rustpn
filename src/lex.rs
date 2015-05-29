@@ -217,6 +217,7 @@ impl<'a> Lexer<'a> {
         loop {
             match self.chars.next() {
                 Some(c) => if is_whitespace_or_close_brace(c) {
+                    self.chars.replace(c);
                     return Ok(s);
                 } else {
                     s.push(c);
