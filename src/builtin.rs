@@ -1,9 +1,11 @@
+//! Common builtins.
+
 use std::rc::Rc;
 use item::StackItem;
 use vm::{Vm, Error, Method};
 use num::{zero, one, Integer};
 
-pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
+pub fn insert_arithmetic<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("+", Box::new(|vm| {
         let n2 = try!(vm.stack.pop());
         let n1 = try!(vm.stack.pop());
@@ -47,6 +49,9 @@ pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
         }
         Ok(())
     }));
+}
+
+pub fn insert_fn<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("fn", Box::new(|vm| {
         let block = try!(vm.stack.pop());
         let name = try!(vm.stack.pop());
@@ -57,6 +62,9 @@ pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
         }
         Ok(())
     }));
+}
+
+pub fn insert_stack_ops<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("swap", Box::new(|vm| {
         let b = try!(vm.stack.pop());
         let a = try!(vm.stack.pop());
@@ -91,6 +99,9 @@ pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
         let _ = try!(vm.stack.pop());
         Ok(())
     }));
+}
+
+pub fn insert_boolean_ops<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("false", Box::new(|vm| {
         vm.stack.push(StackItem::Boolean(false));
         Ok(())
@@ -114,6 +125,32 @@ pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
         }
         Ok(())
     }));
+    vm.insert_builtin("or", Box::new(|vm| {
+        let b = try!(vm.stack.pop());
+        let a = try!(vm.stack.pop());
+        if let (StackItem::Boolean(a), StackItem::Boolean(b)) = (a, b) {
+            vm.stack.push(StackItem::Boolean(a || b));
+        } else {
+            return Err(Error::TypeError);
+        }
+        Ok(())
+    }));
+}
+
+pub fn insert_string_ops<I>(vm: &mut Vm<I>) where I: Integer + Clone {
+    vm.insert_builtin("cat", Box::new(|vm| {
+        let b = try!(vm.stack.pop());
+        let a = try!(vm.stack.pop());
+        if let (StackItem::String(b), StackItem::String(mut a)) =
+                (b, a) {
+            a.push_str(&b);
+            vm.stack.push(StackItem::String(a));
+        }
+        Ok(())
+    }));
+}
+
+pub fn insert_control_flow<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("if", Box::new(|vm| {
         let block = try!(vm.stack.pop());
         let condition = try!(vm.stack.pop());
@@ -138,16 +175,6 @@ pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
             } else {
                 try!(vm.run_block(&else_block));
             }
-        } else {
-            return Err(Error::TypeError);
-        }
-        Ok(())
-    }));
-    vm.insert_builtin("or", Box::new(|vm| {
-        let b = try!(vm.stack.pop());
-        let a = try!(vm.stack.pop());
-        if let (StackItem::Boolean(a), StackItem::Boolean(b)) = (a, b) {
-            vm.stack.push(StackItem::Boolean(a || b));
         } else {
             return Err(Error::TypeError);
         }
@@ -190,14 +217,13 @@ pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
         }
         Ok(())
     }));
-    vm.insert_builtin("cat", Box::new(|vm| {
-        let b = try!(vm.stack.pop());
-        let a = try!(vm.stack.pop());
-        if let (StackItem::String(b), StackItem::String(mut a)) =
-                (b, a) {
-            a.push_str(&b);
-            vm.stack.push(StackItem::String(a));
-        }
-        Ok(())
-    }));
+}
+
+pub fn insert_all<I>(vm: &mut Vm<I>) where I: Integer + Clone {
+    insert_arithmetic(vm);
+    insert_fn(vm);
+    insert_stack_ops(vm);
+    insert_boolean_ops(vm);
+    insert_string_ops(vm);
+    insert_control_flow(vm);
 }

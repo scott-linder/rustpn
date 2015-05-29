@@ -5,15 +5,15 @@ use std::{error, result};
 use std::fmt;
 use std::collections::HashMap;
 use std::error::Error as StdError;
-use num::integer::Integer;
 use item::{Block, BlockItem, Stack};
-use builtin;
 
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Error {
     TypeError,
+    OutOfBounds,
+    IntegerOverflow,
     DivideByZero,
     StackUnderflow,
     UnknownMethod(String),
@@ -32,6 +32,8 @@ impl error::Error for Error {
     fn description(&self) -> &str {
         match *self {
             Error::DivideByZero => "Divided by zero",
+            Error::OutOfBounds => "Operation out of bounds",
+            Error::IntegerOverflow => "Integer overflow or underflow",
             Error::TypeError => "Type error",
             Error::StackUnderflow => "Stack underflow",
             Error::UnknownMethod(_) => "Unknown method",
@@ -50,17 +52,12 @@ pub struct Vm<I> {
 }
 
 
-impl<I> Vm<I> where I: Integer + Clone {
+impl<I> Vm<I> where I: Clone {
     pub fn new() -> Vm<I> {
         Vm {
             stack: Stack(Vec::new()),
             methods: HashMap::new(),
         }
-    }
-    pub fn new_with_builtins() -> Vm<I> {
-        let mut vm = Vm::<I>::new();
-        builtin::insert(&mut vm);
-        vm
     }
 
     pub fn run(&mut self, item: &BlockItem<I>) -> Result<()> {
@@ -88,6 +85,7 @@ impl<I> Vm<I> where I: Integer + Clone {
         Ok(())
     }
 
+    #[inline]
     pub fn insert_builtin<S>(&mut self, name: S, method: Box<Fn(&mut Vm<I>)
                    -> Result<()>>) where S: Into<String> {
         self.methods.insert(name.into(), Rc::new(Method::Builtin(method)));

@@ -3,6 +3,7 @@ extern crate num;
 
 use rustpn::parse;
 use rustpn::vm::Vm;
+use rustpn::builtin;
 use std::io::{self, stdin, Read, BufRead};
 use std::fs::File;
 use std::env;
@@ -54,7 +55,8 @@ fn batch<I>(vm: &mut Vm<I>, filename: &str) -> io::Result<()>
 }
 
 fn main() {
-    let mut vm = Vm::<BigInt>::new_with_builtins();
+    let mut vm = Vm::<BigInt>::new();
+    builtin::insert_all(&mut vm);
     let args = env::args();
     if let Some(filename) = args.skip(1).next() {
         batch(&mut vm, &filename).unwrap();
