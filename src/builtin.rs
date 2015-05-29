@@ -3,7 +3,7 @@
 use std::rc::Rc;
 use item::StackItem;
 use vm::{Vm, Error, Method};
-use num::{zero, one, Integer};
+use num::{zero, one, Integer, ToPrimitive, FromPrimitive};
 
 pub fn insert_arithmetic<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("+", Box::new(|vm| {
@@ -64,12 +64,51 @@ pub fn insert_fn<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     }));
 }
 
-pub fn insert_stack_ops<I>(vm: &mut Vm<I>) where I: Integer + Clone {
+pub fn insert_stack_ops<I>(vm: &mut Vm<I>)
+        where I: Integer + Clone + ToPrimitive + FromPrimitive {
     vm.insert_builtin("swap", Box::new(|vm| {
         let b = try!(vm.stack.pop());
         let a = try!(vm.stack.pop());
         vm.stack.push(b);
         vm.stack.push(a);
+        Ok(())
+    }));
+    vm.insert_builtin("clone", Box::new(|vm| {
+        let a = try!(vm.stack.pop());
+        vm.stack.push(a.clone());
+        vm.stack.push(a);
+        Ok(())
+    }));
+    vm.insert_builtin("clone-nth", Box::new(|vm| {
+        if let StackItem::Integer(n) = try!(vm.stack.pop()) {
+            if let Some(n) = n.to_usize() {
+                if n <= vm.stack.0.len() {
+                    let idx = vm.stack.0.len() - n;
+                    let nth = vm.stack.0.get(idx).map(|i| i.clone());
+                    if let Some(nth) = nth {
+                        vm.stack.push(nth);
+                    } else {
+                        return Err(Error::OutOfBounds);
+                    }
+                } else {
+                    return Err(Error::OutOfBounds);
+                }
+            } else {
+                return Err(Error::IntegerOverflow);
+            }
+        } else {
+            return Err(Error::TypeError);
+        }
+        Ok(())
+    }));
+    vm.insert_builtin("clear", Box::new(|vm| {
+        vm.stack.0.clear();
+        Ok(())
+    }));
+    vm.insert_builtin("len", Box::new(|vm| {
+        let count = try!(FromPrimitive::from_usize(vm.stack.0.len())
+                         .ok_or(Error::IntegerOverflow));
+        vm.stack.push(StackItem::Integer(count));
         Ok(())
     }));
     vm.insert_builtin("over", Box::new(|vm| {
@@ -86,12 +125,6 @@ pub fn insert_stack_ops<I>(vm: &mut Vm<I>) where I: Integer + Clone {
         let a = try!(vm.stack.pop());
         vm.stack.push(b);
         vm.stack.push(c);
-        vm.stack.push(a);
-        Ok(())
-    }));
-    vm.insert_builtin("dup", Box::new(|vm| {
-        let a = try!(vm.stack.pop());
-        vm.stack.push(a.clone());
         vm.stack.push(a);
         Ok(())
     }));
@@ -219,7 +252,8 @@ pub fn insert_control_flow<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     }));
 }
 
-pub fn insert_all<I>(vm: &mut Vm<I>) where I: Integer + Clone {
+pub fn insert_all<I>(vm: &mut Vm<I>)
+        where I: Integer + Clone + ToPrimitive + FromPrimitive {
     insert_arithmetic(vm);
     insert_fn(vm);
     insert_stack_ops(vm);
