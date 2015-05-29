@@ -1,6 +1,7 @@
 //! Common builtins.
 
 use std::rc::Rc;
+use std::string::ToString;
 use item::StackItem;
 use vm::{Vm, Error, Method};
 use num::{zero, one, Integer, ToPrimitive, FromPrimitive};
@@ -9,44 +10,90 @@ pub fn insert_arithmetic<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("+", Box::new(|vm| {
         let n2 = try!(vm.stack.pop());
         let n1 = try!(vm.stack.pop());
-        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
-            vm.stack.push(StackItem::Integer(n1 + n2));
-        } else {
-            return Err(Error::TypeError);
+        match (n2, n1) {
+            (StackItem::Integer(n2), StackItem::Integer(n1))
+                => vm.stack.push(StackItem::Integer(n1 + n2)),
+            (StackItem::Float(n2), StackItem::Float(n1))
+                => vm.stack.push(StackItem::Float(n1 + n2)),
+            _ => return Err(Error::TypeError),
         }
         Ok(())
     }));
     vm.insert_builtin("-", Box::new(|vm| {
         let n2 = try!(vm.stack.pop());
         let n1 = try!(vm.stack.pop());
-        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
-            vm.stack.push(StackItem::Integer(n1 - n2));
-        } else {
-            return Err(Error::TypeError);
+        match (n2, n1) {
+            (StackItem::Integer(n2), StackItem::Integer(n1))
+                => vm.stack.push(StackItem::Integer(n1 - n2)),
+            (StackItem::Float(n2), StackItem::Float(n1))
+                => vm.stack.push(StackItem::Float(n1 - n2)),
+            _ => return Err(Error::TypeError),
         }
         Ok(())
     }));
     vm.insert_builtin("*", Box::new(|vm| {
         let n2 = try!(vm.stack.pop());
         let n1 = try!(vm.stack.pop());
-        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
-            vm.stack.push(StackItem::Integer(n1 * n2));
-        } else {
-            return Err(Error::TypeError);
+        match (n2, n1) {
+            (StackItem::Integer(n2), StackItem::Integer(n1))
+                => vm.stack.push(StackItem::Integer(n1 * n2)),
+            (StackItem::Float(n2), StackItem::Float(n1))
+                => vm.stack.push(StackItem::Float(n1 * n2)),
+            _ => return Err(Error::TypeError),
         }
         Ok(())
     }));
     vm.insert_builtin("/", Box::new(|vm| {
         let n2 = try!(vm.stack.pop());
         let n1 = try!(vm.stack.pop());
-        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
-            if n2 == zero() {
-                return Err(Error::DivideByZero);
-            }
-            vm.stack.push(StackItem::Integer(n1 / n2));
-        } else {
-            return Err(Error::TypeError);
+        match (n2, n1) {
+            (StackItem::Integer(n2), StackItem::Integer(n1)) => if n2 == zero() {
+                    return Err(Error::DivideByZero);
+                } else {
+                    vm.stack.push(StackItem::Integer(n1 / n2))
+                },
+            (StackItem::Float(n2), StackItem::Float(n1))
+                => vm.stack.push(StackItem::Float(n1 / n2)),
+            _ => return Err(Error::TypeError),
         }
+        Ok(())
+    }));
+}
+
+pub fn insert_conversions<I>(vm: &mut Vm<I>)
+        where I: Integer + Clone + FromPrimitive + ToPrimitive + ToString {
+    vm.insert_builtin("as-integer", Box::new(|vm| {
+        let n = try!(vm.stack.pop());
+        vm.stack.push(match n {
+            i @ StackItem::Integer(_) => i,
+            StackItem::Float(f) => {
+                let i = try!(FromPrimitive::from_f64(f).ok_or(Error::NumericConversion));
+                StackItem::Integer(i)
+            },
+            _ => return Err(Error::TypeError),
+        });
+        Ok(())
+    }));
+    vm.insert_builtin("as-float", Box::new(|vm| {
+        let n = try!(vm.stack.pop());
+        vm.stack.push(match n {
+            StackItem::Integer(n) => {
+                let f = try!(n.to_f64().ok_or(Error::NumericConversion));
+                StackItem::Float(f)
+            },
+            f @ StackItem::Float(_) => f,
+            _ => return Err(Error::TypeError),
+        });
+        Ok(())
+    }));
+    vm.insert_builtin("to-string", Box::new(|vm| {
+        let a = try!(vm.stack.pop());
+        vm.stack.push(match a {
+            s @ StackItem::String(_) => s,
+            StackItem::Integer(i) => StackItem::String(i.to_string()),
+            StackItem::Float(f) => StackItem::String(f.to_string()),
+            _ => return Err(Error::TypeError),
+        });
         Ok(())
     }));
 }
@@ -253,8 +300,9 @@ pub fn insert_control_flow<I>(vm: &mut Vm<I>) where I: Integer + Clone {
 }
 
 pub fn insert_all<I>(vm: &mut Vm<I>)
-        where I: Integer + Clone + ToPrimitive + FromPrimitive {
+        where I: Integer + Clone + ToPrimitive + FromPrimitive + ToString {
     insert_arithmetic(vm);
+    insert_conversions(vm);
     insert_fn(vm);
     insert_stack_ops(vm);
     insert_boolean_ops(vm);

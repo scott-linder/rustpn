@@ -77,6 +77,11 @@ fn parse_block<I>(lexer: &mut lex::Lexer, block_level: BlockLevel) -> Result<I>
                     .expect("lexer should have rejected integer");
                 block.push(BlockItem::Literal(StackItem::Integer(i)));
             },
+            Token::Float(s) => {
+                let f = s.parse().ok()
+                    .expect("lexer should have rejected float");
+                block.push(BlockItem::Literal(StackItem::Float(f)));
+            },
             Token::String(s) =>
                 block.push(BlockItem::Literal(StackItem::String(s))),
             Token::Symbol(s) => block.push(BlockItem::Literal(StackItem::Symbol(s))),

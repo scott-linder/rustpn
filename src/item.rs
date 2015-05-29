@@ -4,11 +4,11 @@ use std::fmt;
 use vm;
 
 /// The equivalent of a routine/function.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Block<I>(pub Vec<BlockItem<I>>);
 
 /// Language items only valid in a block.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum BlockItem<I> {
     Call(String),
     Literal(StackItem<I>),
@@ -33,7 +33,7 @@ impl<I> fmt::Display for BlockItem<I> where I: fmt::Display {
 }
 
 /// The global stack.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Stack<I>(pub Vec<StackItem<I>>);
 
 impl<I> Stack<I> {
@@ -56,9 +56,10 @@ impl<I> fmt::Display for Stack<I> where I: fmt::Display {
 }
 
 /// Language items only valid on the stack.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum StackItem<I> {
     Integer(I),
+    Float(f64),
     String(String),
     Boolean(bool),
     Symbol(String),
@@ -69,6 +70,7 @@ impl<I> fmt::Display for StackItem<I> where I: fmt::Display {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             StackItem::Integer(ref i) => write!(f, "{}", *i),
+            StackItem::Float(n) => write!(f, "{}", n),
             StackItem::String(ref s) => write!(f, "\"{}\"", *s),
             StackItem::Boolean(b) => write!(f, "{}", b),
             StackItem::Symbol(ref s) => write!(f, ":{}", *s),

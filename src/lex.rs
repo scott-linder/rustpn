@@ -17,7 +17,7 @@ pub enum Error {
     UnknownToken,
     UnclosedComment,
     UnclosedString,
-    MalformedInteger,
+    MalformedNumber,
 }
 
 impl Error {
@@ -46,7 +46,7 @@ impl error::Error for Error {
             Error::UnknownToken => "Unknown token",
             Error::UnclosedComment => "Unclosed comment",
             Error::UnclosedString => "Unclosed string",
-            Error::MalformedInteger => "Malformed integer",
+            Error::MalformedNumber => "Malformed integer or float",
         }
     }
 }
@@ -90,6 +90,7 @@ impl<'a> Iterator for ReplaceOneChars<'a> {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Token {
     Integer(String),
+    Float(String),
     String(String),
     Symbol(String),
     Call(String),
@@ -138,21 +139,30 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn integer(&mut self) -> Result<Token> {
+    fn number(&mut self) -> Result<Token> {
         let mut s = String::new();
+        let mut is_float = false;
         loop {
             match self.chars.next() {
                 Some(c) => if c.is_digit(DECIMAL) {
                     s.push(c);
+                } else if !is_float && c == '.' {
+                    is_float = true;
+                    s.push(c);
                 } else if is_whitespace_or_close_brace(c) {
                     self.chars.replace(c);
-                    return Ok(Token::Integer(s));
+                    break;
                 } else {
-                    return Err(Error::MalformedInteger);
+                    return Err(Error::MalformedNumber);
                 },
-                None => return Ok(Token::Integer(s)),
+                None => break,
             }
         }
+        Ok(if is_float {
+            Token::Float(s)
+        } else {
+            Token::Integer(s)
+        })
     }
 
     fn comment(&mut self) -> Result<Token> {
@@ -230,7 +240,7 @@ impl<'a> Iterator for Lexer<'a> {
                 self.whitespace()
             } else if c.is_digit(DECIMAL) {
                 self.chars.replace(c);
-                self.integer()
+                self.number()
             } else if c == '#' {
                 self.comment()
             } else if c == '(' {
