@@ -6,7 +6,7 @@ use std::fmt;
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use num::integer::Integer;
-use item::{Block, BlockItem, Stack, StackItem};
+use item::{Block, BlockItem, Stack};
 use builtin;
 
 pub type Result<T> = result::Result<T, Error>;
@@ -91,13 +91,5 @@ impl<I> Vm<I> where I: Integer + Clone {
     pub fn insert_builtin<S>(&mut self, name: S, method: Box<Fn(&mut Vm<I>)
                    -> Result<()>>) where S: Into<String> {
         self.methods.insert(name.into(), Rc::new(Method::Builtin(method)));
-    }
-
-    pub fn pop_integer(&mut self) -> Result<I> {
-        match self.stack.0.pop() {
-            Some(StackItem::Integer(i)) => Ok(i),
-            Some(..) => Err(Error::TypeError),
-            None => Err(Error::StackUnderflow),
-        }
     }
 }

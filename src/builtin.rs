@@ -5,30 +5,46 @@ use num::{zero, one, Integer};
 
 pub fn insert<I>(vm: &mut Vm<I>) where I: Integer + Clone {
     vm.insert_builtin("+", Box::new(|vm| {
-        let n2 = try!(vm.pop_integer());
-        let n1 = try!(vm.pop_integer());
-        vm.stack.push(StackItem::Integer(n1 + n2));
+        let n2 = try!(vm.stack.pop());
+        let n1 = try!(vm.stack.pop());
+        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
+            vm.stack.push(StackItem::Integer(n1 + n2));
+        } else {
+            return Err(Error::TypeError);
+        }
         Ok(())
     }));
     vm.insert_builtin("-", Box::new(|vm| {
-        let n2 = try!(vm.pop_integer());
-        let n1 = try!(vm.pop_integer());
-        vm.stack.push(StackItem::Integer(n1 - n2));
+        let n2 = try!(vm.stack.pop());
+        let n1 = try!(vm.stack.pop());
+        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
+            vm.stack.push(StackItem::Integer(n1 - n2));
+        } else {
+            return Err(Error::TypeError);
+        }
         Ok(())
     }));
     vm.insert_builtin("*", Box::new(|vm| {
-        let n2 = try!(vm.pop_integer());
-        let n1 = try!(vm.pop_integer());
-        vm.stack.push(StackItem::Integer(n1 * n2));
+        let n2 = try!(vm.stack.pop());
+        let n1 = try!(vm.stack.pop());
+        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
+            vm.stack.push(StackItem::Integer(n1 * n2));
+        } else {
+            return Err(Error::TypeError);
+        }
         Ok(())
     }));
     vm.insert_builtin("/", Box::new(|vm| {
-        let n2 = try!(vm.pop_integer());
-        let n1 = try!(vm.pop_integer());
-        if n2 == zero() {
-            return Err(Error::DivideByZero);
+        let n2 = try!(vm.stack.pop());
+        let n1 = try!(vm.stack.pop());
+        if let (StackItem::Integer(n2), StackItem::Integer(n1)) = (n2, n1) {
+            if n2 == zero() {
+                return Err(Error::DivideByZero);
+            }
+            vm.stack.push(StackItem::Integer(n1 / n2));
+        } else {
+            return Err(Error::TypeError);
         }
-        vm.stack.push(StackItem::Integer(n1 / n2));
         Ok(())
     }));
     vm.insert_builtin("fn", Box::new(|vm| {
