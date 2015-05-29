@@ -109,10 +109,7 @@ pub struct Lexer<'a> {
 
 const DECIMAL: u32 = 10u32;
 
-#[inline(always)]
-fn is_whitespace_or_close_brace(c: char) -> bool {
-    c.is_whitespace() || c == '}'
-}
+const SPECIAL_CHARS: [char; 7] = ['#', '(', ')', '"', '{', '}', ':'];
 
 impl<'a> Lexer<'a> {
     /// Create a new lexer over the provided source code.
@@ -149,7 +146,7 @@ impl<'a> Lexer<'a> {
                 } else if !is_float && c == '.' {
                     is_float = true;
                     s.push(c);
-                } else if is_whitespace_or_close_brace(c) {
+                } else if c.is_whitespace() || SPECIAL_CHARS.contains(&c) {
                     self.chars.replace(c);
                     break;
                 } else {
@@ -216,7 +213,7 @@ impl<'a> Lexer<'a> {
         let mut s = String::new();
         loop {
             match self.chars.next() {
-                Some(c) => if is_whitespace_or_close_brace(c) {
+                Some(c) => if c.is_whitespace() || SPECIAL_CHARS.contains(&c) {
                     self.chars.replace(c);
                     return Ok(s);
                 } else {
