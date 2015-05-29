@@ -107,14 +107,16 @@ pub fn parse<I>(src: &str) -> Result<I>
 #[cfg(test)]
 mod tests {
     use super::{Error, parse};
-    use item::{BlockItem, StackItem};
+    use item::{Block, BlockItem, StackItem};
 
     #[test]
     fn test_all_simple() {
-        assert_eq!(parse(r#"(comment) {} "string" 1 call"#),
-            Ok(vec![BlockItem::Literal(StackItem::Block(vec![])),
+        assert_eq!(parse(r#"(comment) {} "string" 1 1.0 call :symbol"#),
+            Ok(Block(vec![BlockItem::Literal(StackItem::Block(Block(vec![]))),
                     BlockItem::Literal(StackItem::String("string".to_string())),
                     BlockItem::Literal(StackItem::Integer(1)),
-                    BlockItem::Call("call".to_string())]));
+                    BlockItem::Literal(StackItem::Float(1.0)),
+                    BlockItem::Call("call".to_string()),
+                    BlockItem::Literal(StackItem::Symbol("symbol".to_string()))])));
     }
 }

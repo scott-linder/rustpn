@@ -284,11 +284,11 @@ mod tests {
     }
 
     #[test]
-    fn test_integer() {
+    fn test_number() {
         assert_eq!(Lexer::new("0").collect::<Vec<_>>(),
             vec![Ok(Token::Integer("0".to_string()))]);
         assert_eq!(Lexer::new("1.0").collect::<Vec<_>>(),
-            vec![Err(Error::MalformedInteger)]);
+            vec![Ok(Token::Float("1.0".to_string()))]);
     }
 
     #[test]
