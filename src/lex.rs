@@ -274,19 +274,47 @@ mod tests {
     }
 
     #[test]
+    fn test_number() {
+        assert_eq!(Lexer::new("0").collect::<Vec<_>>(),
+            vec![Ok(Token::Integer("0".into()))]);
+        assert_eq!(Lexer::new("1.0").collect::<Vec<_>>(),
+            vec![Ok(Token::Float("1.0".into()))]);
+    }
+
+    #[test]
+    fn test_string() {
+        assert_eq!(Lexer::new("\"this is a string\"").collect::<Vec<_>>(),
+            vec![Ok(Token::String("this is a string".into()))]);
+        assert_eq!(Lexer::new("\"this is an unclosed string").collect::<Vec<_>>(),
+            vec![Err(Error::UnclosedString)]);
+    }
+
+    #[test]
+    fn test_symbol() {
+        assert_eq!(Lexer::new(":this-is-a-symbol").collect::<Vec<_>>(),
+            vec![Ok(Token::Symbol("this-is-a-symbol".into()))]);
+    }
+
+    #[test]
+    fn test_call() {
+        assert_eq!(Lexer::new("this-is-a-call").collect::<Vec<_>>(),
+            vec![Ok(Token::Call("this-is-a-call".into()))]);
+    }
+
+    #[test]
+    fn test_braces() {
+        assert_eq!(Lexer::new("{").collect::<Vec<_>>(),
+            vec![Ok(Token::OpenBrace)]);
+        assert_eq!(Lexer::new("}").collect::<Vec<_>>(),
+            vec![Ok(Token::CloseBrace)]);
+    }
+
+    #[test]
     fn test_whitespace() {
         assert_eq!(Lexer::new(" ").collect::<Vec<_>>(),
             vec![Ok(Token::Whitespace)]);
         assert_eq!(Lexer::new("  \t\t\n\n").collect::<Vec<_>>(),
             vec![Ok(Token::Whitespace)]);
-    }
-
-    #[test]
-    fn test_number() {
-        assert_eq!(Lexer::new("0").collect::<Vec<_>>(),
-            vec![Ok(Token::Integer("0".to_string()))]);
-        assert_eq!(Lexer::new("1.0").collect::<Vec<_>>(),
-            vec![Ok(Token::Float("1.0".to_string()))]);
     }
 
     #[test]
@@ -296,18 +324,5 @@ mod tests {
         assert_eq!(Lexer::new("(this is an unclosed comment")
                    .collect::<Vec<_>>(),
             vec![Err(Error::UnclosedComment)]);
-    }
-    #[test]
-    fn test_string() {
-        assert_eq!(Lexer::new("\"this is a string\"").collect::<Vec<_>>(),
-            vec![Ok(Token::String("this is a string".to_string()))]);
-        assert_eq!(Lexer::new("\"this is an unclosed string").collect::<Vec<_>>(),
-            vec![Err(Error::UnclosedString)]);
-    }
-
-    #[test]
-    fn test_call() {
-        assert_eq!(Lexer::new("this-is-a-call").collect::<Vec<_>>(),
-            vec![Ok(Token::Call("this-is-a-call".to_string()))]);
     }
 }
