@@ -1,6 +1,8 @@
 RustPN
 ======
 
+[![Build Status](https://travis-ci.org/scott-linder/rustpn.svg?branch=master)](https://travis-ci.org/scott-linder/rustpn)
+
 RustPN is a stack-based scripting language designed to extend Rust programs
 with runtime programmability.
 
